@@ -1,6 +1,3 @@
-# 대화 세션 기록
-session*.md
-
 # Node modules
 node_modules/
 
