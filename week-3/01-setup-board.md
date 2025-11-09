@@ -124,7 +124,114 @@ function Board() {
 - `handleClick`: 클릭 시 상태 업데이트
 - `slice()`: 배열을 복사하여 불변성 유지
 
-### 3단계: 스타일링
+**문제점:**
+- 9개의 Square를 수동으로 작성해야 함
+- 코드 중복이 많음
+- 보드 크기를 바꾸려면 모든 코드를 수정해야 함
+
+### 3단계: 반복문으로 Square 재사용하기
+
+React의 강력한 점은 JavaScript의 모든 기능을 사용할 수 있다는 것입니다. `map()`을 사용하여 Square를 동적으로 생성할 수 있습니다.
+
+#### 방법 1: board-row를 유지하면서 map() 사용
+
+```jsx
+function Board() {
+  const [squares, setSquares] = useState(Array(9).fill(null));
+  const [xIsNext, setXIsNext] = useState(true);
+
+  function handleClick(i) {
+    if (squares[i]) return;
+
+    const nextSquares = squares.slice();
+    nextSquares[i] = xIsNext ? 'X' : 'O';
+    setSquares(nextSquares);
+    setXIsNext(!xIsNext);
+  }
+
+  // 한 행을 렌더링하는 헬퍼 함수
+  const renderRow = (rowIndex) => {
+    return (
+      <div key={rowIndex} className="board-row">
+        {[0, 1, 2].map(col => {
+          const index = rowIndex * 3 + col;
+          return (
+            <Square
+              key={index}
+              value={squares[index]}
+              onSquareClick={() => handleClick(index)}
+            />
+          );
+        })}
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <div className="status">
+        Next player: {xIsNext ? 'X' : 'O'}
+      </div>
+      {/* 0, 1, 2 행을 반복 */}
+      {[0, 1, 2].map(row => renderRow(row))}
+    </>
+  );
+}
+```
+
+**장점:**
+- 코드 중복 제거
+- 보드 크기를 쉽게 변경 가능
+- 가독성 향상
+
+#### 방법 2: CSS Grid를 사용한 더 간결한 방법
+
+```jsx
+function Board() {
+  const [squares, setSquares] = useState(Array(9).fill(null));
+  const [xIsNext, setXIsNext] = useState(true);
+
+  function handleClick(i) {
+    if (squares[i]) return;
+
+    const nextSquares = squares.slice();
+    nextSquares[i] = xIsNext ? 'X' : 'O';
+    setSquares(nextSquares);
+    setXIsNext(!xIsNext);
+  }
+
+  return (
+    <>
+      <div className="status">
+        Next player: {xIsNext ? 'X' : 'O'}
+      </div>
+      <div className="board-grid">
+        {squares.map((value, index) => (
+          <Square
+            key={index}
+            value={value}
+            onSquareClick={() => handleClick(index)}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+```
+
+**장점:**
+- 훨씬 더 간결한 코드
+- board-row div 불필요
+- CSS Grid로 레이아웃 처리
+
+**주의사항:**
+- `key` prop을 반드시 제공해야 함
+- 리스트의 각 항목은 고유한 key가 필요
+- 여기서는 index를 key로 사용 (항목의 순서가 바뀌지 않으므로 안전)
+
+### 4단계: 스타일링
+
+#### Flexbox 방식 (board-row 사용)
 
 ```css
 .square {
@@ -153,7 +260,46 @@ function Board() {
 }
 ```
 
+#### CSS Grid 방식 (board-grid 사용)
+
+```css
+.square {
+  background: #fff;
+  border: 1px solid #999;
+  font-size: 24px;
+  font-weight: bold;
+  line-height: 34px;
+  height: 60px;
+  width: 60px;
+  padding: 0;
+  text-align: center;
+  cursor: pointer;
+}
+
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 60px);
+  grid-template-rows: repeat(3, 60px);
+  gap: 0;
+  width: fit-content;
+}
+
+/* Grid에서는 border를 겹치게 하기 위한 다른 방식 */
+.board-grid .square {
+  margin-right: -1px;
+  margin-bottom: -1px;
+}
+```
+
+**Grid의 장점:**
+- 레이아웃을 CSS로 완전히 제어
+- 더 유연한 그리드 시스템
+- 반응형 디자인에 유리
+- 보드 크기를 쉽게 조정 가능 (예: 4x4, 5x5)
+
 ## 실전 예제: 완전한 틱택토 보드
+
+### 버전 1: Flexbox + board-row (수동 나열)
 
 ```jsx
 import { useState } from 'react';
@@ -177,13 +323,7 @@ function Board() {
     }
 
     const nextSquares = squares.slice();
-
-    if (xIsNext) {
-      nextSquares[i] = 'X';
-    } else {
-      nextSquares[i] = 'O';
-    }
-
+    nextSquares[i] = xIsNext ? 'X' : 'O';
     setSquares(nextSquares);
     setXIsNext(!xIsNext);
   }
@@ -216,6 +356,64 @@ export default function App() {
   return <Board />;
 }
 ```
+
+### 버전 2: CSS Grid + map() (권장)
+
+```jsx
+import { useState } from 'react';
+import './App.css';
+
+function Square({ value, onSquareClick }) {
+  return (
+    <button className="square" onClick={onSquareClick}>
+      {value}
+    </button>
+  );
+}
+
+function Board() {
+  const [squares, setSquares] = useState(Array(9).fill(null));
+  const [xIsNext, setXIsNext] = useState(true);
+
+  function handleClick(i) {
+    if (squares[i]) {
+      return;
+    }
+
+    const nextSquares = squares.slice();
+    nextSquares[i] = xIsNext ? 'X' : 'O';
+    setSquares(nextSquares);
+    setXIsNext(!xIsNext);
+  }
+
+  const status = 'Next player: ' + (xIsNext ? 'X' : 'O');
+
+  return (
+    <>
+      <div className="status">{status}</div>
+      <div className="board-grid">
+        {squares.map((value, index) => (
+          <Square
+            key={index}
+            value={value}
+            onSquareClick={() => handleClick(index)}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+export default function App() {
+  return <Board />;
+}
+```
+
+**버전 2가 더 나은 이유:**
+- 코드가 훨씬 간결함 (45줄 → 35줄)
+- 중복 코드 제거
+- 확장하기 쉬움 (4x4, 5x5 보드 등)
+- React의 선언형 방식을 더 잘 활용
 
 ## 컴포넌트 구조 이해하기
 
@@ -288,12 +486,13 @@ function Square({ value, onSquareClick }) {
 <summary>힌트</summary>
 
 - 0-8까지의 배열을 만들고 `map()` 사용
-- 3개씩 그룹화하여 행 만들기
+- 3개씩 그룹화하여 행 만들기 (Flexbox 방식)
+- 또는 CSS Grid 사용 (더 간단)
 - `key` prop 잊지 말기
 </details>
 
 <details>
-<summary>답안 보기</summary>
+<summary>답안 1: Flexbox 방식 (board-row 유지)</summary>
 
 ```jsx
 function Board() {
@@ -331,6 +530,52 @@ function Board() {
       {[0, 1, 2].map(row => renderRow(row))}
     </>
   );
+}
+```
+</details>
+
+<details>
+<summary>답안 2: CSS Grid 방식 (권장)</summary>
+
+```jsx
+function Board() {
+  const [squares, setSquares] = useState(Array(9).fill(null));
+  const [xIsNext, setXIsNext] = useState(true);
+
+  function handleClick(i) {
+    if (squares[i]) return;
+
+    const nextSquares = squares.slice();
+    nextSquares[i] = xIsNext ? 'X' : 'O';
+    setSquares(nextSquares);
+    setXIsNext(!xIsNext);
+  }
+
+  return (
+    <>
+      <div className="status">
+        Next player: {xIsNext ? 'X' : 'O'}
+      </div>
+      <div className="board-grid">
+        {squares.map((value, index) => (
+          <Square
+            key={index}
+            value={value}
+            onSquareClick={() => handleClick(index)}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+```
+
+**CSS:**
+```css
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 60px);
+  grid-template-rows: repeat(3, 60px);
 }
 ```
 </details>
